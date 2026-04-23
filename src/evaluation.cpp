@@ -57,70 +57,110 @@ Value Binary::eval(Assoc &e) { // evaluation of two-operators primitive
 }
 
 Value Variadic::eval(Assoc &e) { // evaluation of multi-operator primitive
-    // TODO: TO COMPLETE THE VARIADIC CLASS
+    std::vector<Value> args;
+    for (auto &rand : rands) {
+        args.push_back(rand->eval(e));
+    }
+    return evalRator(args);
 }
 
 Value Var::eval(Assoc &e) { // evaluation of variable
-    // TODO: TO identify the invalid variable
-    // We request all valid variable just need to be a symbol,you should promise:
-    //The first character of a variable name cannot be a digit or any character from the set: {.@}
-    //If a string can be recognized as a number, it will be prioritized as a number. For example: 1, -1, +123, .123, +124., 1e-3
-    //Variable names can overlap with primitives and reserve_words
-    //Variable names can contain any non-whitespace characters except #, ', ", `, but the first character cannot be a digit
-    //When a variable is not defined in the current scope, your interpreter should output RuntimeError
-    
     Value matched_value = find(x, e);
     if (matched_value.get() == nullptr) {
         if (primitives.count(x)) {
-             static std::map<ExprType, std::pair<Expr, std::vector<std::string>>> primitive_map = {
-                    {E_VOID,     {new MakeVoid(), {}}},
-                    {E_EXIT,     {new Exit(), {}}},
-                    {E_BOOLQ,    {new IsBoolean(new Var("parm")), {"parm"}}},
-                    {E_INTQ,     {new IsFixnum(new Var("parm")), {"parm"}}},
-                    {E_NULLQ,    {new IsNull(new Var("parm")), {"parm"}}},
-                    {E_PAIRQ,    {new IsPair(new Var("parm")), {"parm"}}},
-                    {E_PROCQ,    {new IsProcedure(new Var("parm")), {"parm"}}},
-                    {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {"parm"}}},
-                    {E_STRINGQ,  {new IsString(new Var("parm")), {"parm"}}},
-                    {E_DISPLAY,  {new Display(new Var("parm")), {"parm"}}},
-                    {E_PLUS,     {new PlusVar({}),  {}}},
-                    {E_MINUS,    {new MinusVar({}), {}}},
-                    {E_MUL,      {new MultVar({}),  {}}},
-                    {E_DIV,      {new DivVar({}),   {}}},
-                    {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-                    {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
-                    {E_EQQ,      {new EqualVar({}), {}}},
-            };
-
-            auto it = primitive_map.find(primitives[x]);
-            //TOD0:to PASS THE parameters correctly;
-            //COMPLETE THE CODE WITH THE HINT IN IF SENTENCE WITH CORRECT RETURN VALUE
-            if (it != primitive_map.end()) {
-                //TODO
-            }
-      }
+            ExprType type = primitives[x];
+            std::vector<std::string> params;
+            Expr body(nullptr);
+            if (type == E_VOID) body = Expr(new MakeVoid());
+            else if (type == E_EXIT) body = Expr(new Exit());
+            else if (type == E_BOOLQ) { params = {"x"}; body = Expr(new IsBoolean(Expr(new Var("x")))); }
+            else if (type == E_INTQ) { params = {"x"}; body = Expr(new IsFixnum(Expr(new Var("x")))); }
+            else if (type == E_NULLQ) { params = {"x"}; body = Expr(new IsNull(Expr(new Var("x")))); }
+            else if (type == E_PAIRQ) { params = {"x"}; body = Expr(new IsPair(Expr(new Var("x")))); }
+            else if (type == E_PROCQ) { params = {"x"}; body = Expr(new IsProcedure(Expr(new Var("x")))); }
+            else if (type == E_SYMBOLQ) { params = {"x"}; body = Expr(new IsSymbol(Expr(new Var("x")))); }
+            else if (type == E_STRINGQ) { params = {"x"}; body = Expr(new IsString(Expr(new Var("x")))); }
+            else if (type == E_LISTQ) { params = {"x"}; body = Expr(new IsList(Expr(new Var("x")))); }
+            else if (type == E_DISPLAY) { params = {"x"}; body = Expr(new Display(Expr(new Var("x")))); }
+            else if (type == E_PLUS) body = Expr(new PlusVar({}));
+            else if (type == E_MINUS) body = Expr(new MinusVar({}));
+            else if (type == E_MUL) body = Expr(new MultVar({}));
+            else if (type == E_DIV) body = Expr(new DivVar({}));
+            else if (type == E_MODULO) { params = {"x", "y"}; body = Expr(new Modulo(Expr(new Var("x")), Expr(new Var("y")))); }
+            else if (type == E_EXPT) { params = {"x", "y"}; body = Expr(new Expt(Expr(new Var("x")), Expr(new Var("y")))); }
+            else if (type == E_EQQ) { params = {"x", "y"}; body = Expr(new IsEq(Expr(new Var("x")), Expr(new Var("y")))); }
+            else if (type == E_CONS) { params = {"x", "y"}; body = Expr(new Cons(Expr(new Var("x")), Expr(new Var("y")))); }
+            else if (type == E_CAR) { params = {"x"}; body = Expr(new Car(Expr(new Var("x")))); }
+            else if (type == E_CDR) { params = {"x"}; body = Expr(new Cdr(Expr(new Var("x")))); }
+            else if (type == E_LIST) body = Expr(new ListFunc({}));
+            else if (type == E_LT) body = Expr(new LessVar({}));
+            else if (type == E_LE) body = Expr(new LessEqVar({}));
+            else if (type == E_EQ) body = Expr(new EqualVar({}));
+            else if (type == E_GE) body = Expr(new GreaterEqVar({}));
+            else if (type == E_GT) body = Expr(new GreaterVar({}));
+            else if (type == E_NOT) { params = {"x"}; body = Expr(new Not(Expr(new Var("x")))); }
+            
+            if (body.get()) return ProcedureV(params, body, empty());
+        }
+        throw RuntimeError("Variable not found: " + x);
     }
     return matched_value;
 }
 
 Value Plus::evalRator(const Value &rand1, const Value &rand2) { // +
-    //TODO: To complete the addition logic
+    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
+        return IntegerV(dynamic_cast<Integer*>(rand1.get())->n + dynamic_cast<Integer*>(rand2.get())->n);
+    } else if (rand1->v_type == V_RATIONAL || rand2->v_type == V_RATIONAL) {
+        int n1, d1, n2, d2;
+        if (rand1->v_type == V_INT) { n1 = dynamic_cast<Integer*>(rand1.get())->n; d1 = 1; }
+        else { n1 = dynamic_cast<Rational*>(rand1.get())->numerator; d1 = dynamic_cast<Rational*>(rand1.get())->denominator; }
+        if (rand2->v_type == V_INT) { n2 = dynamic_cast<Integer*>(rand2.get())->n; d2 = 1; }
+        else { n2 = dynamic_cast<Rational*>(rand2.get())->numerator; d2 = dynamic_cast<Rational*>(rand2.get())->denominator; }
+        return RationalV(n1 * d2 + n2 * d1, d1 * d2);
+    }
     throw(RuntimeError("Wrong typename"));
 }
 
 Value Minus::evalRator(const Value &rand1, const Value &rand2) { // -
-    //TODO: To complete the substraction logic
+    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
+        return IntegerV(dynamic_cast<Integer*>(rand1.get())->n - dynamic_cast<Integer*>(rand2.get())->n);
+    } else if (rand1->v_type == V_RATIONAL || rand2->v_type == V_RATIONAL) {
+        int n1, d1, n2, d2;
+        if (rand1->v_type == V_INT) { n1 = dynamic_cast<Integer*>(rand1.get())->n; d1 = 1; }
+        else { n1 = dynamic_cast<Rational*>(rand1.get())->numerator; d1 = dynamic_cast<Rational*>(rand1.get())->denominator; }
+        if (rand2->v_type == V_INT) { n2 = dynamic_cast<Integer*>(rand2.get())->n; d2 = 1; }
+        else { n2 = dynamic_cast<Rational*>(rand2.get())->numerator; d2 = dynamic_cast<Rational*>(rand2.get())->denominator; }
+        return RationalV(n1 * d2 - n2 * d1, d1 * d2);
+    }
     throw(RuntimeError("Wrong typename"));
 }
 
 Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
-    //TODO: To complete the Multiplication logic
+    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
+        return IntegerV(dynamic_cast<Integer*>(rand1.get())->n * dynamic_cast<Integer*>(rand2.get())->n);
+    } else if (rand1->v_type == V_RATIONAL || rand2->v_type == V_RATIONAL) {
+        int n1, d1, n2, d2;
+        if (rand1->v_type == V_INT) { n1 = dynamic_cast<Integer*>(rand1.get())->n; d1 = 1; }
+        else { n1 = dynamic_cast<Rational*>(rand1.get())->numerator; d1 = dynamic_cast<Rational*>(rand1.get())->denominator; }
+        if (rand2->v_type == V_INT) { n2 = dynamic_cast<Integer*>(rand2.get())->n; d2 = 1; }
+        else { n2 = dynamic_cast<Rational*>(rand2.get())->numerator; d2 = dynamic_cast<Rational*>(rand2.get())->denominator; }
+        return RationalV(n1 * n2, d1 * d2);
+    }
     throw(RuntimeError("Wrong typename"));
 }
 
 Value Div::evalRator(const Value &rand1, const Value &rand2) { // /
-    //TODO: To complete the dicision logic
-    throw(RuntimeError("Wrong typename"));
+    int n1, d1, n2, d2;
+    if (rand1->v_type == V_INT) { n1 = dynamic_cast<Integer*>(rand1.get())->n; d1 = 1; }
+    else if (rand1->v_type == V_RATIONAL) { n1 = dynamic_cast<Rational*>(rand1.get())->numerator; d1 = dynamic_cast<Rational*>(rand1.get())->denominator; }
+    else throw(RuntimeError("Wrong typename"));
+    
+    if (rand2->v_type == V_INT) { n2 = dynamic_cast<Integer*>(rand2.get())->n; d2 = 1; }
+    else if (rand2->v_type == V_RATIONAL) { n2 = dynamic_cast<Rational*>(rand2.get())->numerator; d2 = dynamic_cast<Rational*>(rand2.get())->denominator; }
+    else throw(RuntimeError("Wrong typename"));
+
+    if (n2 == 0) throw(RuntimeError("Division by zero"));
+    return RationalV(n1 * d2, d1 * n2);
 }
 
 Value Modulo::evalRator(const Value &rand1, const Value &rand2) { // modulo
@@ -136,19 +176,47 @@ Value Modulo::evalRator(const Value &rand1, const Value &rand2) { // modulo
 }
 
 Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple args
-    //TODO: To complete the addition logic
+    Value res = IntegerV(0);
+    Plus p(Expr(nullptr), Expr(nullptr));
+    for (const auto& arg : args) {
+        res = p.evalRator(res, arg);
+    }
+    return res;
 }
 
 Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple args
-    //TODO: To complete the substraction logic
+    if (args.empty()) throw RuntimeError("minus requires at least one argument");
+    Minus m(Expr(nullptr), Expr(nullptr));
+    if (args.size() == 1) {
+        return m.evalRator(IntegerV(0), args[0]);
+    }
+    Value res = args[0];
+    for (size_t i = 1; i < args.size(); ++i) {
+        res = m.evalRator(res, args[i]);
+    }
+    return res;
 }
 
 Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple args
-    //TODO: To complete the multiplication logic
+    Value res = IntegerV(1);
+    Mult m(Expr(nullptr), Expr(nullptr));
+    for (const auto& arg : args) {
+        res = m.evalRator(res, arg);
+    }
+    return res;
 }
 
 Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple args
-    //TODO: To complete the divisor logic
+    if (args.empty()) throw RuntimeError("div requires at least one argument");
+    Div d(Expr(nullptr), Expr(nullptr));
+    if (args.size() == 1) {
+        return d.evalRator(IntegerV(1), args[0]);
+    }
+    Value res = args[0];
+    for (size_t i = 1; i < args.size(); ++i) {
+        res = d.evalRator(res, args[i]);
+    }
+    return res;
 }
 
 Value Expt::evalRator(const Value &rand1, const Value &rand2) { // expt
@@ -220,76 +288,100 @@ int compareNumericValues(const Value &v1, const Value &v2) {
 }
 
 Value Less::evalRator(const Value &rand1, const Value &rand2) { // <
-    //TODO: To complete the less logic
-    throw(RuntimeError("Wrong typename"));
+    return BooleanV(compareNumericValues(rand1, rand2) < 0);
 }
 
 Value LessEq::evalRator(const Value &rand1, const Value &rand2) { // <=
-    //TODO: To complete the lesseq logic
-    throw(RuntimeError("Wrong typename"));
+    return BooleanV(compareNumericValues(rand1, rand2) <= 0);
 }
 
 Value Equal::evalRator(const Value &rand1, const Value &rand2) { // =
-    //TODO: To complete the equal logic
-    throw(RuntimeError("Wrong typename"));
+    return BooleanV(compareNumericValues(rand1, rand2) == 0);
 }
 
 Value GreaterEq::evalRator(const Value &rand1, const Value &rand2) { // >=
-    //TODO: To complete the greatereq logic
-    throw(RuntimeError("Wrong typename"));
+    return BooleanV(compareNumericValues(rand1, rand2) >= 0);
 }
 
 Value Greater::evalRator(const Value &rand1, const Value &rand2) { // >
-    //TODO: To complete the greater logic
-    throw(RuntimeError("Wrong typename"));
+    return BooleanV(compareNumericValues(rand1, rand2) > 0);
 }
 
 Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple args
-    //TODO: To complete the less logic
+    for (size_t i = 0; i + 1 < args.size(); ++i) {
+        if (compareNumericValues(args[i], args[i+1]) >= 0) return BooleanV(false);
+    }
+    return BooleanV(true);
 }
 
 Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple args
-    //TODO: To complete the lesseq logic
+    for (size_t i = 0; i + 1 < args.size(); ++i) {
+        if (compareNumericValues(args[i], args[i+1]) > 0) return BooleanV(false);
+    }
+    return BooleanV(true);
 }
 
 Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple args
-    //TODO: To complete the equal logic
+    for (size_t i = 0; i + 1 < args.size(); ++i) {
+        if (compareNumericValues(args[i], args[i+1]) != 0) return BooleanV(false);
+    }
+    return BooleanV(true);
 }
 
 Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multiple args
-    //TODO: To complete the greatereq logic
+    for (size_t i = 0; i + 1 < args.size(); ++i) {
+        if (compareNumericValues(args[i], args[i+1]) < 0) return BooleanV(false);
+    }
+    return BooleanV(true);
 }
 
 Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple args
-    //TODO: To complete the greater logic
+    for (size_t i = 0; i + 1 < args.size(); ++i) {
+        if (compareNumericValues(args[i], args[i+1]) <= 0) return BooleanV(false);
+    }
+    return BooleanV(true);
 }
 
 Value Cons::evalRator(const Value &rand1, const Value &rand2) { // cons
-    //TODO: To complete the cons logic
+    return PairV(rand1, rand2);
 }
 
 Value ListFunc::evalRator(const std::vector<Value> &args) { // list function
-    //TODO: To complete the list logic
+    Value res = NullV();
+    for (int i = (int)args.size() - 1; i >= 0; --i) {
+        res = PairV(args[i], res);
+    }
+    return res;
 }
 
 Value IsList::evalRator(const Value &rand) { // list?
-    //TODO: To complete the list? logic
+    Value curr = rand;
+    while (curr->v_type == V_PAIR) {
+        curr = dynamic_cast<Pair*>(curr.get())->cdr;
+    }
+    return BooleanV(curr->v_type == V_NULL);
 }
 
 Value Car::evalRator(const Value &rand) { // car
-    //TODO: To complete the car logic
+    if (rand->v_type != V_PAIR) throw RuntimeError("car: not a pair");
+    return dynamic_cast<Pair*>(rand.get())->car;
 }
 
 Value Cdr::evalRator(const Value &rand) { // cdr
-    //TODO: To complete the cdr logic
+    if (rand->v_type != V_PAIR) throw RuntimeError("cdr: not a pair");
+    return dynamic_cast<Pair*>(rand.get())->cdr;
 }
 
 Value SetCar::evalRator(const Value &rand1, const Value &rand2) { // set-car!
-    //TODO: To complete the set-car! logic
+    if (rand1->v_type != V_PAIR) throw RuntimeError("set-car!: not a pair");
+    dynamic_cast<Pair*>(rand1.get())->car = rand2;
+    return VoidV();
 }
 
 Value SetCdr::evalRator(const Value &rand1, const Value &rand2) { // set-cdr!
-   //TODO: To complete the set-cdr! logic
+    if (rand1->v_type != V_PAIR) throw RuntimeError("set-cdr!: not a pair");
+    dynamic_cast<Pair*>(rand1.get())->cdr = rand2;
+    return VoidV();
 }
 
 Value IsEq::evalRator(const Value &rand1, const Value &rand2) { // eq?
@@ -343,70 +435,144 @@ Value IsString::evalRator(const Value &rand) { // string?
 }
 
 Value Begin::eval(Assoc &e) {
-    //TODO: To complete the begin logic
+    Value res = VoidV();
+    for (auto &expr : es) {
+        res = expr->eval(e);
+    }
+    return res;
+}
+
+static Value convertSyntaxToValue(Syntax s) {
+    if (auto n = dynamic_cast<Number*>(s.get())) return IntegerV(n->n);
+    if (auto r = dynamic_cast<RationalSyntax*>(s.get())) return RationalV(r->numerator, r->denominator);
+    if (auto b = dynamic_cast<TrueSyntax*>(s.get())) return BooleanV(true);
+    if (auto b = dynamic_cast<FalseSyntax*>(s.get())) return BooleanV(false);
+    if (auto sym = dynamic_cast<SymbolSyntax*>(s.get())) return SymbolV(sym->s);
+    if (auto str = dynamic_cast<StringSyntax*>(s.get())) return StringV(str->s);
+    if (auto lst = dynamic_cast<List*>(s.get())) {
+        if (lst->stxs.empty()) return NullV();
+        Value res = NullV();
+        for (int i = (int)lst->stxs.size() - 1; i >= 0; --i) {
+            res = PairV(convertSyntaxToValue(lst->stxs[i]), res);
+        }
+        return res;
+    }
+    return VoidV();
 }
 
 Value Quote::eval(Assoc& e) {
-    //TODO: To complete the quote logic
+    return convertSyntaxToValue(s);
 }
 
 Value AndVar::eval(Assoc &e) { // and with short-circuit evaluation
-    //TODO: To complete the and logic
+    Value res = BooleanV(true);
+    for (auto &rand : rands) {
+        res = rand->eval(e);
+        if (res->v_type == V_BOOL && !dynamic_cast<Boolean*>(res.get())->b) return res;
+    }
+    return res;
 }
 
 Value OrVar::eval(Assoc &e) { // or with short-circuit evaluation
-    //TODO: To complete the or logic
+    for (auto &rand : rands) {
+        Value res = rand->eval(e);
+        if (!(res->v_type == V_BOOL && !dynamic_cast<Boolean*>(res.get())->b)) return res;
+    }
+    return BooleanV(false);
 }
 
 Value Not::evalRator(const Value &rand) { // not
-    //TODO: To complete the not logic
+    if (rand->v_type == V_BOOL && !dynamic_cast<Boolean*>(rand.get())->b) return BooleanV(true);
+    return BooleanV(false);
 }
 
 Value If::eval(Assoc &e) {
-    //TODO: To complete the if logic
+    Value c = cond->eval(e);
+    if (c->v_type == V_BOOL && !dynamic_cast<Boolean*>(c.get())->b) {
+        return alter->eval(e);
+    } else {
+        return conseq->eval(e);
+    }
 }
 
 Value Cond::eval(Assoc &env) {
-    //TODO: To complete the cond logic
+    for (auto &clause : clauses) {
+        if (clause.empty()) continue;
+        Value c = clause[0]->eval(env);
+        if (!(c->v_type == V_BOOL && !dynamic_cast<Boolean*>(c.get())->b)) {
+            Value res = VoidV();
+            for (size_t i = 1; i < clause.size(); ++i) {
+                res = clause[i]->eval(env);
+            }
+            return res;
+        }
+    }
+    return VoidV();
 }
 
 Value Lambda::eval(Assoc &env) { 
-    //TODO: To complete the lambda logic
+    return ProcedureV(x, e, env);
 }
 
 Value Apply::eval(Assoc &e) {
-    if (rator->eval(e)->v_type != V_PROC) {throw RuntimeError("Attempt to apply a non-procedure");}
+    Value r = rator->eval(e);
+    if (r->v_type != V_PROC) {throw RuntimeError("Attempt to apply a non-procedure");}
 
-    //TODO: TO COMPLETE THE CLOSURE LOGIC
-    Procedure* clos_ptr = ;
+    Procedure* clos_ptr = dynamic_cast<Procedure*>(r.get());
     
-    //TODO: TO COMPLETE THE ARGUMENT PARSER LOGIC
     std::vector<Value> args;
-    if (auto varNode = dynamic_cast<Variadic*>(clos_ptr->e.get())) {
-        //TODO
+    for (auto &arg_expr : rand) {
+        args.push_back(arg_expr->eval(e));
     }
+
     if (args.size() != clos_ptr->parameters.size()) throw RuntimeError("Wrong number of arguments");
     
-    //TODO: TO COMPLETE THE PARAMETERS' ENVIRONMENT LOGIC
-    Assoc param_env = ;
+    Assoc param_env = clos_ptr->env;
+    for (size_t i = 0; i < args.size(); ++i) {
+        param_env = extend(clos_ptr->parameters[i], args[i], param_env);
+    }
 
     return clos_ptr->e->eval(param_env);
 }
 
 Value Define::eval(Assoc &env) {
-    //TODO: To complete the define logic
+    Value val = e->eval(env);
+    if (find(var, env).get() != nullptr) {
+        modify(var, val, env);
+    } else {
+        env = extend(var, val, env);
+    }
+    return VoidV();
 }
 
 Value Let::eval(Assoc &env) {
-    //TODO: To complete the let logic
+    Assoc new_env = env;
+    std::vector<Value> vals;
+    for (auto &b : bind) {
+        vals.push_back(b.second->eval(env));
+    }
+    for (size_t i = 0; i < bind.size(); ++i) {
+        new_env = extend(bind[i].first, vals[i], new_env);
+    }
+    return body->eval(new_env);
 }
 
 Value Letrec::eval(Assoc &env) {
-    //TODO: To complete the letrec logic
+    Assoc new_env = env;
+    for (auto &b : bind) {
+        new_env = extend(b.first, VoidV(), new_env);
+    }
+    for (auto &b : bind) {
+        modify(b.first, b.second->eval(new_env), new_env);
+    }
+    return body->eval(new_env);
 }
 
 Value Set::eval(Assoc &env) {
-    //TODO: To complete the set logic
+    Value val = e->eval(env);
+    if (find(var, env).get() == nullptr) throw RuntimeError("set!: undefined variable");
+    modify(var, val, env);
+    return VoidV();
 }
 
 Value Display::evalRator(const Value &rand) { // display function

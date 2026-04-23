@@ -2,13 +2,7 @@
 #define EXPRESSION
 
 /**
- * @file eclass RationalNum : public ExprBase {
-public:
-    int numerator;
-    int denominator;
-    RationalNum(int num, int den);
-    virtual Value eval(Assoc &) override;
-};p
+ * @file expr.hpp
  * @brief Expression structures for the Scheme interpreter
  * @author luke36
  * 

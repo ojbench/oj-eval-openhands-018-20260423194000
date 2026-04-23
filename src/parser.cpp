@@ -36,7 +36,7 @@ Expr Number::parse(Assoc &env) {
 }
 
 Expr RationalSyntax::parse(Assoc &env) {
-    //TODO: complete the rational parser
+    return Expr(new RationalNum(numerator, denominator));
 }
 
 Expr SymbolSyntax::parse(Assoc &env) {
@@ -60,69 +60,107 @@ Expr List::parse(Assoc &env) {
         return Expr(new Quote(Syntax(new List())));
     }
 
-    //TODO: check if the first element is a symbol
-    //If not, use Apply function to package to a closure;
-    //If so, find whether it's a variable or a keyword;
     SymbolSyntax *id = dynamic_cast<SymbolSyntax*>(stxs[0].get());
-    if (id == nullptr) {
-        //TODO: TO COMPLETE THE LOGIC
-    }else{
-    string op = id->s;
-    if (find(op, env).get() != nullptr) {
-        //TODO: TO COMPLETE THE PARAMETER PARSER LOGIC
-    }
-    if (primitives.count(op) != 0) {
-        vector<Expr> parameters;
-        //TODO: TO COMPLETE THE PARAMETER PARSER LOGIC
-        
-        ExprType op_type = primitives[op];
-        if (op_type == E_PLUS) {
-            if (parameters.size() == 2) {
-                return Expr(new Plus(parameters[0], parameters[1])); 
-            } else {
-                throw RuntimeError("Wrong number of arguments for +");
+    if (id != nullptr) {
+        string op = id->s;
+        if (reserved_words.count(op) != 0) {
+            ExprType type = reserved_words[op];
+            if (type == E_QUOTE) {
+                if (stxs.size() != 2) throw RuntimeError("quote requires 1 argument");
+                return Expr(new Quote(stxs[1]));
+            } else if (type == E_IF) {
+                if (stxs.size() != 4) throw RuntimeError("if requires 3 arguments");
+                return Expr(new If(stxs[1]->parse(env), stxs[2]->parse(env), stxs[3]->parse(env)));
+            } else if (type == E_BEGIN) {
+                vector<Expr> es;
+                for (size_t i = 1; i < stxs.size(); ++i) es.push_back(stxs[i]->parse(env));
+                return Expr(new Begin(es));
+            } else if (type == E_LAMBDA) {
+                if (stxs.size() < 3) throw RuntimeError("lambda requires at least 2 arguments");
+                List* params_list = dynamic_cast<List*>(stxs[1].get());
+                if (!params_list) throw RuntimeError("lambda parameters must be a list");
+                vector<string> params;
+                for (auto &p_stx : params_list->stxs) {
+                    SymbolSyntax* p_sym = dynamic_cast<SymbolSyntax*>(p_stx.get());
+                    if (!p_sym) throw RuntimeError("lambda parameter must be a symbol");
+                    params.push_back(p_sym->s);
+                }
+                vector<Expr> body_es;
+                for (size_t i = 2; i < stxs.size(); ++i) body_es.push_back(stxs[i]->parse(env));
+                return Expr(new Lambda(params, Expr(new Begin(body_es))));
+            } else if (type == E_DEFINE) {
+                if (stxs.size() < 3) throw RuntimeError("define requires at least 2 arguments");
+                SymbolSyntax* var_sym = dynamic_cast<SymbolSyntax*>(stxs[1].get());
+                if (var_sym) {
+                    if (stxs.size() != 3) throw RuntimeError("define variable requires 1 value");
+                    return Expr(new Define(var_sym->s, stxs[2]->parse(env)));
+                } else {
+                    List* func_list = dynamic_cast<List*>(stxs[1].get());
+                    if (!func_list || func_list->stxs.empty()) throw RuntimeError("invalid define syntax");
+                    SymbolSyntax* func_sym = dynamic_cast<SymbolSyntax*>(func_list->stxs[0].get());
+                    if (!func_sym) throw RuntimeError("invalid define syntax");
+                    vector<string> params;
+                    for (size_t i = 1; i < func_list->stxs.size(); ++i) {
+                        SymbolSyntax* p_sym = dynamic_cast<SymbolSyntax*>(func_list->stxs[i].get());
+                        if (!p_sym) throw RuntimeError("parameter must be a symbol");
+                        params.push_back(p_sym->s);
+                    }
+                    vector<Expr> body_es;
+                    for (size_t i = 2; i < stxs.size(); ++i) body_es.push_back(stxs[i]->parse(env));
+                    return Expr(new Define(func_sym->s, Expr(new Lambda(params, Expr(new Begin(body_es))))));
+                }
+            } else if (type == E_LET) {
+                if (stxs.size() < 3) throw RuntimeError("let requires at least 2 arguments");
+                List* bind_list = dynamic_cast<List*>(stxs[1].get());
+                if (!bind_list) throw RuntimeError("let bindings must be a list");
+                vector<pair<string, Expr>> binds;
+                for (auto &b_stx : bind_list->stxs) {
+                    List* b_list = dynamic_cast<List*>(b_stx.get());
+                    if (!b_list || b_list->stxs.size() != 2) throw RuntimeError("invalid let binding");
+                    SymbolSyntax* b_sym = dynamic_cast<SymbolSyntax*>(b_list->stxs[0].get());
+                    if (!b_sym) throw RuntimeError("let binding variable must be a symbol");
+                    binds.push_back({b_sym->s, b_list->stxs[1]->parse(env)});
+                }
+                vector<Expr> body_es;
+                for (size_t i = 2; i < stxs.size(); ++i) body_es.push_back(stxs[i]->parse(env));
+                return Expr(new Let(binds, Expr(new Begin(body_es))));
+            } else if (type == E_LETREC) {
+                if (stxs.size() < 3) throw RuntimeError("letrec requires at least 2 arguments");
+                List* bind_list = dynamic_cast<List*>(stxs[1].get());
+                if (!bind_list) throw RuntimeError("letrec bindings must be a list");
+                vector<pair<string, Expr>> binds;
+                for (auto &b_stx : bind_list->stxs) {
+                    List* b_list = dynamic_cast<List*>(b_stx.get());
+                    if (!b_list || b_list->stxs.size() != 2) throw RuntimeError("invalid letrec binding");
+                    SymbolSyntax* b_sym = dynamic_cast<SymbolSyntax*>(b_list->stxs[0].get());
+                    if (!b_sym) throw RuntimeError("letrec binding variable must be a symbol");
+                    binds.push_back({b_sym->s, b_list->stxs[1]->parse(env)});
+                }
+                vector<Expr> body_es;
+                for (size_t i = 2; i < stxs.size(); ++i) body_es.push_back(stxs[i]->parse(env));
+                return Expr(new Letrec(binds, Expr(new Begin(body_es))));
+            } else if (type == E_COND) {
+                vector<vector<Expr>> clauses;
+                for (size_t i = 1; i < stxs.size(); ++i) {
+                    List* c_list = dynamic_cast<List*>(stxs[i].get());
+                    if (!c_list || c_list->stxs.empty()) throw RuntimeError("invalid cond clause");
+                    vector<Expr> clause;
+                    for (auto &c_stx : c_list->stxs) clause.push_back(c_stx->parse(env));
+                    clauses.push_back(clause);
+                }
+                return Expr(new Cond(clauses));
+            } else if (type == E_SET) {
+                if (stxs.size() != 3) throw RuntimeError("set! requires 2 arguments");
+                SymbolSyntax* var_sym = dynamic_cast<SymbolSyntax*>(stxs[1].get());
+                if (!var_sym) throw RuntimeError("set! variable must be a symbol");
+                return Expr(new Set(var_sym->s, stxs[2]->parse(env)));
             }
-        } else if (op_type == E_MINUS) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_MUL) {
-            //TODO: TO COMPLETE THE LOGIC
-        }  else if (op_type == E_DIV) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_MODULO) {
-            if (parameters.size() != 2) {
-                throw RuntimeError("Wrong number of arguments for modulo");
-            }
-            return Expr(new Modulo(parameters[0], parameters[1]));
-        } else if (op_type == E_LIST) {
-            return Expr(new ListFunc(parameters));
-        } else if (op_type == E_LT) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_LE) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_EQ) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_GE) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_GT) {
-            //TODO: TO COMPLETE THE LOGIC
-        } else if (op_type == E_AND) {
-            return Expr(new AndVar(parameters));
-        } else if (op_type == E_OR) {
-            return Expr(new OrVar(parameters));
-        } else {
-            //TODO: TO COMPLETE THE LOGIC
         }
     }
 
-    if (reserved_words.count(op) != 0) {
-    	switch (reserved_words[op]) {
-			//TODO: TO COMPLETE THE reserve_words PARSER LOGIC
-        	default:
-            	throw RuntimeError("Unknown reserved word: " + op);
-    	}
-    }
-
-    //default: use Apply to be an expression
-    //TODO: TO COMPLETE THE PARSER LOGIC
-}
+    // Default: function application
+    Expr rator = stxs[0]->parse(env);
+    vector<Expr> rands;
+    for (size_t i = 1; i < stxs.size(); ++i) rands.push_back(stxs[i]->parse(env));
+    return Expr(new Apply(rator, rands));
 }

@@ -1,0 +1,50 @@
+[
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/main.cpp.o -c /workspace/problem_018/src/main.cpp",
+  "file": "/workspace/problem_018/src/main.cpp",
+  "output": "CMakeFiles/code.dir/src/main.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/syntax.cpp.o -c /workspace/problem_018/src/syntax.cpp",
+  "file": "/workspace/problem_018/src/syntax.cpp",
+  "output": "CMakeFiles/code.dir/src/syntax.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/RE.cpp.o -c /workspace/problem_018/src/RE.cpp",
+  "file": "/workspace/problem_018/src/RE.cpp",
+  "output": "CMakeFiles/code.dir/src/RE.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/parser.cpp.o -c /workspace/problem_018/src/parser.cpp",
+  "file": "/workspace/problem_018/src/parser.cpp",
+  "output": "CMakeFiles/code.dir/src/parser.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/expr.cpp.o -c /workspace/problem_018/src/expr.cpp",
+  "file": "/workspace/problem_018/src/expr.cpp",
+  "output": "CMakeFiles/code.dir/src/expr.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/value.cpp.o -c /workspace/problem_018/src/value.cpp",
+  "file": "/workspace/problem_018/src/value.cpp",
+  "output": "CMakeFiles/code.dir/src/value.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/evaluation.cpp.o -c /workspace/problem_018/src/evaluation.cpp",
+  "file": "/workspace/problem_018/src/evaluation.cpp",
+  "output": "CMakeFiles/code.dir/src/evaluation.cpp.o"
+},
+{
+  "directory": "/workspace/problem_018/build",
+  "command": "/usr/bin/c++   -std=gnu++11 -g -o CMakeFiles/code.dir/src/Def.cpp.o -c /workspace/problem_018/src/Def.cpp",
+  "file": "/workspace/problem_018/src/Def.cpp",
+  "output": "CMakeFiles/code.dir/src/Def.cpp.o"
+}
+]
